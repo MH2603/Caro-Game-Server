@@ -1,0 +1,101 @@
+######################################
+# Build results
+######################################
+
+# .NET build folders
+bin/
+obj/
+
+# Rider / ReSharper
+.idea/
+*.sln.iml
+_ReSharper*/
+*.DotSettings.user
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+######################################
+# Logs
+######################################
+*.log
+logs/
+*.tlog
+
+######################################
+# OS generated files
+######################################
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Mac
+.DS_Store
+
+######################################
+# Temporary files
+######################################
+*.tmp
+*.temp
+*.cache
+
+######################################
+# Publish output
+######################################
+publish/
+*.publish.xml
+
+######################################
+# NuGet
+######################################
+*.nupkg
+*.snupkg
+packages/
+!packages/build/
+!packages/repositories.config
+
+######################################
+# Environment / Secrets
+######################################
+.env
+.env.*
+appsettings.Development.json
+secrets.json
+
+######################################
+# Coverage & Testing
+######################################
+coverage/
+TestResults/
+*.coverage
+*.coveragexml
+
+######################################
+# Docker (if using)
+######################################
+docker-compose.override.yml
+
+######################################
+# Database (if local)
+######################################
+*.db
+*.sqlite
+*.sqlite3
+
+######################################
+# VSCode
+######################################
+.vscode/
+
+######################################
+# Backup files
+######################################
+*.bak
+*.old
+*.orig
