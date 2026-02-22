@@ -1,11 +1,7 @@
 using Shared.Common;
 using Shared.Network;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using System.Collections.Concurrent;
 using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Server
 {
@@ -20,7 +16,7 @@ namespace Server
         private IObjectPool<Session> _sessionPool;
         private uint _sessionIndex = 0;
 
-        private Dictionary<int, Session> _runningSessionMap = new(); 
+        private ConcurrentDictionary<int, Session> _runningSessionMap = new(); 
 
         #endregion
 
@@ -48,7 +44,7 @@ namespace Server
             session.OnPacketReceived += HandleReceivedPacket;
             session.OnClosed += HandleSessionClosed;
             
-            _runningSessionMap.Add(session.SessionId, session);
+            _runningSessionMap.TryAdd(session.SessionId, session);
 
             _sessionIndex++;
 
@@ -96,7 +92,7 @@ namespace Server
             session.OnClosed -= HandleSessionClosed;
             session.OnPacketReceived -= HandleReceivedPacket;
 
-            _runningSessionMap.Remove(session.SessionId);
+            _runningSessionMap.TryRemove(session.SessionId, out _);
 
             if(session.State == SessionState.Authenticated)
                 Logger.Log($" {session.Player.Data.UserName} disconnected ");
