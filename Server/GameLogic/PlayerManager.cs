@@ -1,4 +1,4 @@
-﻿using Server.Network;
+using Server.Network;
 using Shared.GameLogic;
 using Shared.Logic;
 using Shared.Network;
@@ -99,7 +99,7 @@ namespace Server.GameLogic
 
         private async void HandleSignUp(Session session, Packet packet)
         {
-            var cmd = StructByteConverter.ToStruct<c2s_signup>(packet.Data);
+            var cmd = new c2s_signup(packet.Data);
 
             var userName = cmd.GetUsername();
             var pw = cmd.GetPassword();
@@ -143,11 +143,9 @@ namespace Server.GameLogic
 
         void HandleLogin(Session session, Packet packet)
         {
-            var c2s_login = new c2s_login();
-            c2s_login.FromByte(packet.Data);
-
-            var userName = Encoding.UTF8.GetString(c2s_login.UserName);
-            var pw = Encoding.UTF8.GetString(c2s_login.Password);
+            var cmd = new c2s_login(packet.Data);
+            var userName = cmd.GetUserName();
+            var pw = cmd.GetPassword();
 
             foreach (var player in _playerMap.Values )
             {

@@ -1,4 +1,5 @@
-﻿using Shared.Network;
+using Shared.Common;
+using Shared.Network;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -69,12 +70,12 @@ namespace Server
             }
         }
 
-        public void SendCmd<T>(int playerId, EPacketHeader header, T cmd ) where T : struct
+        public void SendCmd<T>(int playerId, EPacketHeader header, T cmd) where T : struct, IByteSerializable
         {
             var packet = new Packet
             {
                 Header = header,
-                Data = StructByteConverter.ToBytes(cmd)
+                Data = cmd.ToBytes()
             };
 
             SendPacket(playerId, packet);   

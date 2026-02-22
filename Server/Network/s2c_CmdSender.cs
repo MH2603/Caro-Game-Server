@@ -1,4 +1,4 @@
-﻿using Server.GameLogic;
+using Server.GameLogic;
 using Shared.GameLogic;
 using Shared.Logic;
 using Shared.Network;
@@ -25,7 +25,7 @@ namespace Server.Network
             Packet packet = new Packet
             {
                 Header = EPacketHeader.Login_Response,
-                Data = StructByteConverter.ToBytes(s2C_Login)
+                Data = s2C_Login.ToBytes()
             };
 
             session.SendPacket(packet);
@@ -42,7 +42,7 @@ namespace Server.Network
             Packet packet = new Packet
             {
                 Header = EPacketHeader.Login_Response,
-                Data = StructByteConverter.ToBytes(s2C_Login)
+                Data = s2C_Login.ToBytes()
             };
 
             SessionManager.Instance.SendPacket(playerId, packet);
@@ -61,7 +61,7 @@ namespace Server.Network
             Packet packet = new Packet
             {
                 Header = EPacketHeader.Match_Start,
-                Data = StructByteConverter.ToBytes(cmd)
+                Data = cmd.ToBytes()
             };
 
             SessionManager.Instance.SendPacket(player_A_Id, packet);
@@ -79,7 +79,7 @@ namespace Server.Network
             Packet packet = new Packet
             {
                 Header = EPacketHeader.SignUp_Response,
-                Data = StructByteConverter.ToBytes(cmd)
+                Data = cmd.ToBytes()
             };
 
             SessionManager.Instance.SendPacket( playerId, packet);
@@ -92,7 +92,7 @@ namespace Server.Network
             Packet packet = new Packet
             {
                 Header = EPacketHeader.Start_Turn,
-                Data = StructByteConverter.ToBytes(cmd)
+                Data = cmd.ToBytes()
             };
 
             SessionManager.Instance.SendPacket(playerId, packet);

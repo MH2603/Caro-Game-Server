@@ -1,0 +1,79 @@
+---
+description: Conventions for network command structs in Game Server
+globs: Shared/GameLogic/*.cs, **/c2s_command.cs, **/s2c_command.cs
+alwaysApply: true
+---
+
+# Game Server Struct Rules
+
+Network command structs (c2s_*, s2c_*) must follow these conventions for serialization and deserialization.
+
+## 1. Layout and Interface
+
+- Use `[StructLayout(LayoutKind.Sequential, Pack = 1)]`
+- Implement `IByteSerializable` (from `Shared.Common`)
+- All command structs must have `byte[] ToBytes()` and `ctor(byte[] bytes)`
+
+## 2. ToBytes() Implementation
+
+**Structs WITHOUT array fields** (primitives only):
+- Use `StructByteConverter.ToBytes(this)` for fast, reflection-based serialization
+
+```csharp
+public byte[] ToBytes() => StructByteConverter.ToBytes(this);
+```
+
+**Structs WITH array fields** (byte[], T[], etc.):
+- Use procedural conversion: convert each field to bytes, add to a `List<byte>`, return `list.ToArray()`
+- Order must match the byte[] constructor parsing order
+
+```csharp
+public byte[] ToBytes()
+{
+    var list = new List<byte>();
+    list.AddRange(BitConverter.GetBytes(FieldSize));
+    list.AddRange(FieldArray ?? Array.Empty<byte>());
+    return list.ToArray();
+}
+```
+
+## 3. Constructor from byte[]
+
+- Add `public StructName(byte[] bytes)` for deserialization
+- Parse fields in the same order as `ToBytes()` writes them
+- Use `int offset` and advance it: `offset += 4` after each read
+- For variable-length byte[]: read `*Size` first, then `Array.Copy(bytes, offset, arr, 0, size)`
+
+## 4. byte[] Fields That Represent Strings
+
+When a `byte[]` field holds UTF8-encoded string data:
+
+- Use `*Size` (int) field immediately before the byte[] to store length
+- Add `Get*()` methods that return `string`:
+
+```csharp
+public string GetUserName() => UserName != null 
+    ? Encoding.UTF8.GetString(UserName, 0, UserNameSize) 
+    : string.Empty;
+```
+
+- Always use the size field when decoding: `Encoding.UTF8.GetString(bytes, 0, size)`
+- Return `string.Empty` when the byte array is null
+
+## 5. Nested Structs and Arrays of Structs
+
+- For `Struct[]`: write `ArraySize` (uint/int) first, then each element's bytes
+- Each element struct implements `IByteSerializable` and has its own `ToBytes()` / `ctor(byte[])`
+- For fixed-size element structs, use `ReadOnlySpan<byte>` in constructor and `const int SizeBytes`
+
+## 6. Usage at Call Sites
+
+- **Serialize**: `cmd.ToBytes()` instead of `StructByteConverter.ToBytes(cmd)`
+- **Deserialize**: `new StructName(packet.Data)` instead of `StructByteConverter.ToStruct<StructName>(bytes)`
+- `SendCmd<T>` and `Session.SendCmd<T>` require `where T : struct, IByteSerializable`
+
+## 7. Empty Structs (e.g. c2s_FindMatch)
+
+- `ToBytes()` returns `Array.Empty<byte>()`
+- Constructor `(byte[] bytes)` can be empty
+- Use `default(StructName)` when creating for send (no payload)

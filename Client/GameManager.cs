@@ -1,4 +1,4 @@
-﻿using Shared.GameLogic;
+using Shared.GameLogic;
 using Shared.Logic;
 using Shared.Network;
 
@@ -36,7 +36,7 @@ namespace Client
         private void HandleLoginRespone(Packet packet)
         {
             byte[] data = packet.Data;
-            s2c_login cmd = StructByteConverter.ToStruct<s2c_login>(data);
+            s2c_login cmd = new s2c_login(data);
 
             switch (cmd.Result)
             {
@@ -52,7 +52,7 @@ namespace Client
 
         void HandleMatchStart(Packet packet)
         {
-            var cmd = StructByteConverter.ToStruct<s2c_match_start>(packet.Data);
+            var cmd = new s2c_match_start(packet.Data);
 
             _player.ChangeState(EPlayerState.InMatch);
 

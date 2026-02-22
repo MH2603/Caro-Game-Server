@@ -1,10 +1,5 @@
-﻿using Shared.Logic;
+using Shared.Logic;
 using Shared.Network;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Client
 {
@@ -26,13 +21,13 @@ namespace Client
 
         public void SendFindMatchCmd()
         {
-            var cmd = new c2s_signup();
+            var cmd = default(c2s_FindMatch);
             SendCmd(EPacketHeader.Find_Match, cmd);
         }
 
         public void SendExecuteTurnCmd(int x, int y)
         {
-            var cmd = new c2s_execute_turn();
+            var cmd = new c2s_execute_turn(x, y);
             SendCmd(EPacketHeader.Execute_Turn, cmd);
         }
        

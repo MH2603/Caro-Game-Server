@@ -1,4 +1,4 @@
-﻿using Server.Network;
+using Server.Network;
 using Shared.GameLogic;
 using Shared.Logic;
 using Shared.Network;
@@ -154,7 +154,7 @@ namespace Server.GameLogic
 
         private void HandlePlayerExecutedTurn(int senderId, Packet packet)
         {
-            c2s_execute_turn cmd = StructByteConverter.ToStruct<c2s_execute_turn>(packet.Data);
+            c2s_execute_turn cmd = new c2s_execute_turn(packet.Data);
 
             for (int i=0; i < _matchs.Count; i ++)
             {

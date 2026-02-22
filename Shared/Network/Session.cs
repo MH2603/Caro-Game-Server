@@ -1,4 +1,5 @@
-﻿using Shared.GameLogic;
+using Shared.Common;
+using Shared.GameLogic;
 using System.Net.Sockets;
 
 namespace Shared.Network
@@ -122,12 +123,12 @@ namespace Shared.Network
 
         }
 
-        public void SendCmd<T>(EPacketHeader header, T value) where T : struct
+        public void SendCmd<T>(EPacketHeader header, T value) where T : struct, IByteSerializable
         {
             var packet = new Packet
             {
                 Header = header,
-                Data = StructByteConverter.ToBytes(value)
+                Data = value.ToBytes()
             };
 
             SendPacket(packet);
