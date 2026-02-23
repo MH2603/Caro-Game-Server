@@ -2,6 +2,7 @@ using Server.Network;
 using Shared.GameLogic;
 using Shared.Logic;
 using Shared.Network;
+using System.Collections.Concurrent;
 using System.Numerics;
 using System.Text;
 
@@ -16,30 +17,31 @@ namespace Server.GameLogic
 
     public class PlayerManager : IPacketHandler, IPlayerService
     {
-        private Dictionary<int, Player> _playerMap = new();
+        private ConcurrentDictionary<int, Player> _playerMap = new();
 
 
         // ref other services
         IPlayerRepository PlayerRepository { get; set; }
 
-        public PlayerManager()
+        public PlayerManager( IPlayerRepository playerRepository)
         {   
-            PlayerRepository = ServiceLocator.GetService<IPlayerRepository>();
+            PlayerRepository = playerRepository;
 
             InitPlayers();
 
+            // hanler cmd from Clients
             RegisterWithPacketDispatch(EPacketHeader.Login);
             RegisterWithPacketDispatch(EPacketHeader.SignUp);
         }
 
         async void InitPlayers()
         {
-            PlayerData[] playerDatas = await PlayerRepository.GetAll();
+            PlayerData[] playerDatas = await PlayerRepository.GetAllAsync();
 
             for (int i = 0; i < playerDatas.Length; i++) 
             {
                 var player = new Player(playerDatas[i]);
-                _playerMap.Add (player.Id, player); 
+                _playerMap.TryAdd(player.Id, player); 
             }
         }
 

@@ -3,7 +3,7 @@ using Shared.Network;
 
 namespace Client
 {
-    public class GameSession : Session
+    public class ClientSession : Session
     {
 
         #region Send cmd to Server

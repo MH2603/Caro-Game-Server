@@ -7,12 +7,12 @@ namespace Client
     public class GameManager 
     {
         Player _player;
-        GameSession _session;
+        ClientSession _session;
 
         public Player Player { get { return _player; } }
 
 
-        public GameManager(GameSession gameSession) 
+        public GameManager(ClientSession gameSession) 
         {
             _session = gameSession;
 

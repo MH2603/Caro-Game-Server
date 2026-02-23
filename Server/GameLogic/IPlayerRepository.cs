@@ -1,4 +1,4 @@
-﻿using Shared.GameLogic;
+using Shared.GameLogic;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,6 +12,7 @@ namespace Server.GameLogic
         Task AddAsync(PlayerData playerData);
         Task UpdateAsync(PlayerData playerData);
 
-        Task<PlayerData[]> GetAll();
+        Task<PlayerData[]> GetAllAsync();
+        Task UpdateMatchStatsAsync(int playerId, int winMatch, int lostMatch);
     }
 }

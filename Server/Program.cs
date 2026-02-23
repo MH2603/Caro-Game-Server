@@ -11,7 +11,7 @@ Batteries.Init();
 var db = new SQLiteDbContext("mygame.db");
 var playerRepo = new SQLitePlayerRepository(db);
 await playerRepo.Init();
-ServiceLocator.RegisterService<IPlayerRepository>(playerRepo);
+//ServiceLocator.RegisterService<IPlayerRepository>(playerRepo);
 
 
 // init sessions
@@ -22,7 +22,7 @@ var networkListener = new NetworkListener();
 networkListener.Start();
 
 
-var playerManager = new PlayerManager();
+var playerManager = new PlayerManager(playerRepo);
 
 
 while (true)

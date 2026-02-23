@@ -1,9 +1,13 @@
-﻿namespace Shared.GameLogic
+﻿using Dapper.Contrib.Extensions;
+
+namespace Shared.GameLogic
 {
     [Serializable]
+    [Table("Player")]
     public class PlayerData
     {
-        public int Id;
+        [Key]
+        public int Id { get; set; }
 
         public string UserName = "";
         public string Password = "";
@@ -11,6 +15,9 @@
         // Always UTC
         public DateTime CreatedDate;
         public DateTime LastLoginDate;
+
+        public int WinMatch;
+        public int LostMatch;
     }
 
     public enum EPlayerState

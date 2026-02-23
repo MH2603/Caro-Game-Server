@@ -1,11 +1,8 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
 using Client;
-using Shared.Logic;
-using Shared.Network;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 
 Console.WriteLine("Hello, World!");
 
@@ -13,7 +10,7 @@ TcpClient tcpClient = new TcpClient();
 IPAddress iPAddress = IPAddress.Loopback;
 tcpClient.Connect(iPAddress, 2003);
 
-var session = new GameSession();
+var session = new ClientSession();
 session.Start(0, tcpClient);
 
 GameManager gameManager = new GameManager(session);

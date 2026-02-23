@@ -1,15 +1,18 @@
-﻿using Server.GameLogic;
+using Dapper;
+using Dapper.Contrib;
+using Dapper.Contrib.Extensions;
+using Microsoft.Data.Sqlite;
+using Server.GameLogic;
 using Shared.GameLogic;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Server.Database
 {
+
+
     public class SQLitePlayerRepository : IPlayerRepository, IDisposable
     {
+        private const string PlayerTable = "Players";
+
         private readonly SQLiteDbContext _context;
         private CancellationTokenSource _cts;
 
@@ -28,6 +31,29 @@ namespace Server.Database
 
 
         /// <summary>
+        /// Adds WinMatch and LostMatch columns to existing Players table if they don't exist.
+        /// </summary>
+        private async Task AddWinMatchLostMatchColumnsIfNeededAsync(SqliteConnection conn)
+        {
+            var columns = await conn.QueryAsync<string>(
+                "SELECT name FROM pragma_table_info('Players') WHERE name IN ('WinMatch', 'LostMatch')");
+            var existing = columns.ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            if (!existing.Contains("WinMatch"))
+            {
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "ALTER TABLE Players ADD COLUMN WinMatch INTEGER NOT NULL DEFAULT 0";
+                await cmd.ExecuteNonQueryAsync(_cts.Token);
+            }
+            if (!existing.Contains("LostMatch"))
+            {
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "ALTER TABLE Players ADD COLUMN LostMatch INTEGER NOT NULL DEFAULT 0";
+                await cmd.ExecuteNonQueryAsync(_cts.Token);
+            }
+        }
+
+        /// <summary>
         /// Initialize the Players table if it does not exist.
         /// </summary>
         public async Task InitPlayersTableAsync()
@@ -42,90 +68,66 @@ namespace Server.Database
                     Username    TEXT    NOT NULL UNIQUE,
                     Password    TEXT    NOT NULL,
                     CreatedDate TEXT    NOT NULL,
-                    LastLoginDate TEXT NOT NULL
+                    LastLoginDate TEXT NOT NULL,
+                    WinMatch    INTEGER NOT NULL DEFAULT 0,
+                    LostMatch   INTEGER NOT NULL DEFAULT 0
                   );";
 
             await cmd.ExecuteNonQueryAsync(_cts.Token);
+
+            await AddWinMatchLostMatchColumnsIfNeededAsync(conn);
         }
 
         public async Task AddAsync(PlayerData playerData)
         {
             using var conn = _context.CreateConnection();
-            conn.Open();
+            await conn.OpenAsync();
 
-            var cmd = conn.CreateCommand();
-            cmd.CommandText = "INSERT INTO Players (Username, Password, CreatedDate, LastLoginDate ) VALUES (@Username, @Password, @CreatedDate, @LastLoginDate)";
-            cmd.Parameters.AddWithValue("@Username", playerData.UserName);
-            cmd.Parameters.AddWithValue("@Password", playerData.Password);
-            cmd.Parameters.AddWithValue("@CreatedDate", playerData.CreatedDate.ToUniversalTime().ToString("O"));
-            cmd.Parameters.AddWithValue("@LastLoginDate", playerData.LastLoginDate.ToUniversalTime().ToString("O"));
-
-            await cmd.ExecuteNonQueryAsync();
+            await conn.InsertAsync<PlayerData>(playerData);
         }
 
         public async Task UpdateAsync(PlayerData newData)
         {
             using var conn = _context.CreateConnection();
-            conn.Open();
+            await conn.OpenAsync(_cts.Token);
 
-            var cmd = conn.CreateCommand();
-
+            await conn.UpdateAsync(newData);    
         }
 
         public async Task<PlayerData?> GetByUsernameAsync(string username)
         {
             using var conn = _context.CreateConnection();
-            conn.Open();
+            await conn.OpenAsync(_cts.Token);
 
-            var cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT Id, Username, Level FROM Players WHERE Username=@u";
-            cmd.Parameters.AddWithValue("@u", username);
+            var sql = $"SELECT * FROM {PlayerTable} WHERE Username = @Username";
 
-            using var reader = await cmd.ExecuteReaderAsync();
-            if (await reader.ReadAsync())
-            {
-                return new PlayerData(
-                    //reader.GetString(1)
-                );
-            }
+            var data = await conn.QueryFirstOrDefaultAsync<PlayerData>(sql, new { Username = username });
 
-            return null;
+            return data;
         }
 
-        public async Task<PlayerData[]> GetAll()
+       
+        public async Task<PlayerData[]> GetAllAsync()
         {
-            // List dùng để chứa toàn bộ player đọc được từ DB
-            List<PlayerData> players = new List<PlayerData>();
-
-            // Tạo và mở connection (using để đảm bảo Dispose)
             using var conn = _context.CreateConnection();
             await conn.OpenAsync(_cts.Token);
 
-            // Tạo command
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT Id, Username, Password FROM Players";
+            var datas =  await conn.QueryAsync<PlayerData>($"SELECT * FROM {PlayerTable}");
 
-            // ExecuteReaderAsync để đọc nhiều dòng
-            using var reader = await cmd.ExecuteReaderAsync();
+            return datas.ToArray();
 
-            // Đọc từng row trong result set
-            while (await reader.ReadAsync(_cts.Token))
-            {
-                // Map dữ liệu từ DB → object
-                PlayerData player = new PlayerData
-                {
-                    // GetInt32 / GetString nhanh hơn indexer object
-                    Id = reader.GetInt32(reader.GetOrdinal("Id")),
-                    UserName = reader.GetString(reader.GetOrdinal("Username")),
-                    Password = reader.GetString(reader.GetOrdinal("Password"))
-                };
+        }
 
-                // Thêm vào danh sách
-                players.Add(player);
-            }
+        /// <summary>
+        /// Updates WinMatch and LostMatch stats for a player.
+        /// </summary>
+        public async Task UpdateMatchStatsAsync(int playerId, int winMatch, int lostMatch)
+        {
+            using var conn = _context.CreateConnection();
+            await conn.OpenAsync(_cts.Token);
 
-            // Trả về mảng (immutable hơn cho caller)
-            return players.ToArray();
+            var sql = $"UPDATE {PlayerTable} SET WinMatch = @WinMatch, LostMatch = @LostMatch WHERE Id = @Id";
+            await conn.ExecuteAsync(sql, new { Id = playerId, WinMatch = winMatch, LostMatch = lostMatch });
         }
 
         public void Dispose()
