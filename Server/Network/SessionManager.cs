@@ -95,7 +95,7 @@ namespace Server
             _runningSessionMap.TryRemove(session.SessionId, out _);
 
             if(session.State == SessionState.Authenticated)
-                Logger.Log($" {session.Player.Data.UserName} disconnected ");
+                Logger.Log($" {session.Player.Data.Username} disconnected ");
         }
 
         private void HandleReceivedPacket(Session session, Packet packet)

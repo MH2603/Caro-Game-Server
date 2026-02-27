@@ -8,17 +8,27 @@ namespace Server.GameLogic
 {
     public class Match
     {
+        #region FIELDS
+        int _id;
+
         Player A; //  player A
         Player B; //  player B
 
         bool _isTurnOfA;
-        List<Cell> _cells= new List<Cell>();
+        List<Cell> _cells = new List<Cell>();
 
         const int WinConditionCombo = 3;
+        #endregion
 
+
+        #region PROPERTIES
         public Action<Match> OnMatchEnd;
+        public int Id => _id;
 
-        public Match(Player playerA, Player playerB) 
+        #endregion
+
+
+        public Match(Player playerA, Player playerB, int index=0) 
         { 
             A = playerA;
             B = playerB;
@@ -30,6 +40,8 @@ namespace Server.GameLogic
             _cells = new List<Cell>();
 
             CmdSender.SendTurnStartCmd( _isTurnOfA ? A.Id : B.Id, _cells.ToArray());
+
+            _id = index * 100 * 100 + A.Id * 1000 + B.Id;
         }  
 
         public void HandlePlayerExecutedTurn( int playerId ,c2s_execute_turn cmd)
@@ -130,71 +142,5 @@ namespace Server.GameLogic
 
     }
 
-    public class MatchManager : IPacketHandler
-    {
-        private List<Match> _matchs = new List<Match>();
-
-        public MatchManager() 
-        {
-            PacketDispatcher.Instance.RegisterHandler(EPacketHeader.Find_Match, this);
-        }
-
-        public void HandlePacket(Session session, Packet packet)
-        {
-            switch (packet.Header)
-            {
-                case EPacketHeader.Find_Match:
-                    HandleFindMatchRequire(session);
-                    break;
-                case EPacketHeader.Execute_Turn:
-                    HandlePlayerExecutedTurn(session.Player.Id, packet);
-                    break;
-            }
-        }
-
-        private void HandlePlayerExecutedTurn(int senderId, Packet packet)
-        {
-            c2s_execute_turn cmd = new c2s_execute_turn(packet.Data);
-
-            for (int i=0; i < _matchs.Count; i ++)
-            {
-                _matchs[i].HandlePlayerExecutedTurn(senderId, cmd);
-            }
-        }
-
-        private void HandleFindMatchRequire(Session session)
-        {
-            session.Player.ChangeState(EPlayerState.FindMatch);
-
-            // case 1: find a other player
-            var player_B = ServiceLocator.GetService<IPlayerService>().GetRandomPlayerByState(EPlayerState.FindMatch, out var foundCount);
-            if (foundCount > 0)
-            {
-                CreateNewMatch(session.Player, player_B);
-                return;
-            }
-            
-        }
-
-        void CreateNewMatch( Player playerA, Player playerB)
-        {
-            var match = new Match(playerA, playerB);
-            _matchs.Add(match);
-
-            CmdSender.SendMatchStartCmd(playerA.Data.Id, playerB.Data.Id);
-
-            match.OnMatchEnd += HandleMatchEnd;
-        }
-
-        private void HandleMatchEnd(Match match)
-        {
-            if (match != null)
-            {
-                match.OnMatchEnd -= HandleMatchEnd;
-                _matchs.Remove(match);
-            }
-
-            
-        }
-    }
+    
 }

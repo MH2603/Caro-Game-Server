@@ -10,9 +10,11 @@ namespace Server.GameLogic
 {
     public interface IPlayerService
     {
-        Player GetRandomPlayerByState(EPlayerState state, out int foundCount);
+        Player GetRandomPlayerByState(EPlayerState state, out int foundCount, int avoidId = -1);
 
         Player GetPlayer(int playerId);
+
+        Player[] GetPlayerWithState(EPlayerState state);
     }
 
     public class PlayerManager : IPacketHandler, IPlayerService
@@ -54,7 +56,7 @@ namespace Server.GameLogic
         {
             foreach (var player in _playerMap.Values)
             {
-                if(player.Data.UserName.Equals(username))
+                if(player.Data.Username.Equals(username))
                 {
                     return true;
                 }
@@ -66,9 +68,9 @@ namespace Server.GameLogic
 
         #region Player Service
 
-        public Player GetRandomPlayerByState(EPlayerState state, out int foundCount)
+        public Player GetRandomPlayerByState(EPlayerState state, out int foundCount, int avoidId = -1)
         {
-            Player[] players = _playerMap.Values.Where(x => x.State == state).ToArray();
+            Player[] players = _playerMap.Values.Where(x => x.State == state && x.Id != avoidId).ToArray();
             foundCount = players.Length;
 
             if (foundCount == 0) return null;
@@ -81,6 +83,22 @@ namespace Server.GameLogic
         public Player GetPlayer(int playerId)
         {
             return _playerMap.ContainsKey(playerId) ? _playerMap[playerId] : null;
+        }
+
+        public Player[] GetPlayerWithState(EPlayerState state)
+        {
+            List<Player> players = new List<Player>();
+
+            foreach (var player in _playerMap.Values)
+            {
+                if ( player.State == state)
+                {
+                    players.Add(player);    
+                }
+            }
+
+            return players.ToArray();   
+           
         }
 
         #endregion
@@ -103,21 +121,24 @@ namespace Server.GameLogic
         {
             var cmd = new c2s_signup(packet.Data);
 
-            var userName = cmd.GetUsername();
+            var username = cmd.GetUsername();
             var pw = cmd.GetPassword();
 
-            if ( WasExistPlayer( userName) )
+            if ( WasExistPlayer( username) )
             {
-                CmdSender.SendSignUpFaultCmd(session.Player.Id);
+                CmdSender.SendSignUpFaultCmd(session);
                 return;
             }
 
             var playerData = new PlayerData
             {
-                UserName = userName,
+                Username = username,
                 Password = pw,
                 CreatedDate  = DateTime.Now, 
                 LastLoginDate = DateTime.Now,   
+                WinMatch = 0,
+                LostMatch = 0,
+
             };
 
             try
@@ -132,7 +153,7 @@ namespace Server.GameLogic
                 // Send a command to player
                 CmdSender.SendLoginResponse(player.Id, success: true);
 
-                Logger.Log($"Player {userName} was signup success !");
+                Logger.Log($"Player {username} was signup success !");
             }
             catch (Exception ex)
             {
@@ -151,21 +172,20 @@ namespace Server.GameLogic
 
             foreach (var player in _playerMap.Values )
             {
-                if (player.Data.UserName == userName)
+                if (player.State == EPlayerState.Offline &&
+                    player.Data.Username == userName &&
+                    player.Data.Password == pw )
                 {
-                    if (player.Data.Password == pw)
-                    {
-                        session.BindPlayer(player);
-                        player.ChangeState(EPlayerState.Online);
+                    session.BindPlayer(player);
+                    player.ChangeState(EPlayerState.Online);
 
-                        // Send a command to player
-                        CmdSender.SendLoginResponse(player.Id, success: true);
-                        
-                        Logger.Log($"Player {userName} was login !");
+                    // Send a command to player
+                    CmdSender.SendLoginResponse(player.Id, success: true);
 
-                        return;
-                    }
-                    
+                    Logger.Log($"Player {userName} was login !");
+
+                    return;
+
                 }
                 
             }

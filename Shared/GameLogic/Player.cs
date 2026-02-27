@@ -3,21 +3,21 @@
 namespace Shared.GameLogic
 {
     [Serializable]
-    [Table("Player")]
+    [Table("Players")] // must match the DB table name exactly
     public class PlayerData
     {
         [Key]
         public int Id { get; set; }
 
-        public string UserName = "";
-        public string Password = "";
+        public string Username { get; set; } = "";
+        public string Password { get; set; } = "";
 
         // Always UTC
-        public DateTime CreatedDate;
-        public DateTime LastLoginDate;
+        public DateTime CreatedDate { get; set; }
+        public DateTime LastLoginDate { get; set; }
 
-        public int WinMatch;
-        public int LostMatch;
+        public int WinMatch { get; set; }
+        public int LostMatch { get; set; }
     }
 
     public enum EPlayerState

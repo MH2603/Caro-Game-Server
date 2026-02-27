@@ -24,6 +24,8 @@ networkListener.Start();
 
 var playerManager = new PlayerManager(playerRepo);
 
+var matchManager = new MatchManager(playerManager);
+
 
 while (true)
 {

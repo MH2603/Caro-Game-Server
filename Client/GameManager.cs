@@ -55,7 +55,8 @@ namespace Client
             var cmd = new s2c_match_start(packet.Data);
 
             _player.ChangeState(EPlayerState.InMatch);
-
+            int opponentId = cmd.Player_A_Id == Player.Id ? cmd.Player_B_Id : cmd.Player_A_Id;
+            Logger.Log( $" Started a match with player: { opponentId }");
         }
 
         void InitPlayer(int playerId)
@@ -67,6 +68,7 @@ namespace Client
 
             _player = new Player(data);
         }
+
 
        
     }

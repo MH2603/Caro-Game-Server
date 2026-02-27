@@ -50,8 +50,6 @@ namespace Server.Network
 
         public static void SendMatchStartCmd(int player_A_Id, int player_B_Id)
         {
-            var playerService = ServiceLocator.GetService<IPlayerService>();
-
             s2c_match_start cmd = new s2c_match_start
             {
                 Player_A_Id = player_A_Id,
@@ -69,7 +67,7 @@ namespace Server.Network
         }
 
 
-        public static void SendSignUpFaultCmd(int playerId)
+        public static void SendSignUpFaultCmd(Session session)
         {
             s2c_signup_result cmd = new s2c_signup_result
             {
@@ -82,7 +80,7 @@ namespace Server.Network
                 Data = cmd.ToBytes()
             };
 
-            SessionManager.Instance.SendPacket( playerId, packet);
+            session.SendPacket(packet);
         }
 
         public static void SendTurnStartCmd(int playerId ,Cell[] cells)
