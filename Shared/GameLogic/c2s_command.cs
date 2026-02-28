@@ -99,19 +99,24 @@ namespace Shared.Logic
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct c2s_execute_turn : IByteSerializable
     {
+        public int MatchId;
         public int x;
         public int y;
 
-        public c2s_execute_turn(int x, int y)
+        public c2s_execute_turn(int matchId, int x, int y)
         {
+            MatchId = matchId;
             this.x = x;
             this.y = y;
         }
 
         public c2s_execute_turn(byte[] bytes)
         {
-            x = BitConverter.ToInt32(bytes, 0);
-            y = BitConverter.ToInt32(bytes, 4);
+            int offset = 0;
+
+            MatchId = BitConverter.ToInt32(bytes, offset); offset += 4;
+            x = BitConverter.ToInt32(bytes, offset); offset += 4;
+            y = BitConverter.ToInt32(bytes, offset); offset += 4;
         }
 
         public byte[] ToBytes() => StructByteConverter.ToBytes(this);

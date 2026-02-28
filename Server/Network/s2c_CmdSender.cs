@@ -48,14 +48,10 @@ namespace Server.Network
             SessionManager.Instance.SendPacket(playerId, packet);
         }
 
-        public static void SendMatchStartCmd(int player_A_Id, int player_B_Id)
+        public static void SendMatchStartCmd(int matchId, int player_A_Id, int player_B_Id)
         {
-            s2c_match_start cmd = new s2c_match_start
-            {
-                Player_A_Id = player_A_Id,
-                Player_B_Id = player_B_Id,
-            };
-
+            s2c_match_start cmd = new s2c_match_start(matchId, player_A_Id, player_B_Id);
+            
             Packet packet = new Packet
             {
                 Header = EPacketHeader.Match_Start,
@@ -83,9 +79,9 @@ namespace Server.Network
             session.SendPacket(packet);
         }
 
-        public static void SendTurnStartCmd(int playerId ,Cell[] cells)
+        public static void SendTurnStartCmd(int receiverId , int nextTurnPlayerId, Cell[] cells)
         {
-            var cmd = new s2c_start_turn(cells);
+            var cmd = new s2c_start_turn(nextTurnPlayerId, cells);
 
             Packet packet = new Packet
             {
@@ -93,7 +89,7 @@ namespace Server.Network
                 Data = cmd.ToBytes()
             };
 
-            SessionManager.Instance.SendPacket(playerId, packet);
+            SessionManager.Instance.SendPacket(receiverId, packet);
         }
 
         public static void SendMatchEnd( int receiverId, bool wasDraw, int winnerId)

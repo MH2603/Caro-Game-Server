@@ -38,7 +38,7 @@ while (true)
         case "find_match":
             FindMatch();
             break;
-        case "turn_execute":
+        case "move":
             ExecuteTurn();
             break;
         default:
@@ -53,9 +53,9 @@ while (true)
 
 void ExecuteTurn()
 {
-    var x = int.Parse( Prompt(" x :"));
+    var x = int.Parse(Prompt(" x :"));
     var y = int.Parse(Prompt(" y :"));
-    session.SendExecuteTurnCmd(x, y);
+    gameManager.TryExecuteTurn(x, y);
 }
 
 void FindMatch()
@@ -79,7 +79,7 @@ string Prompt(string message)
 
 void ShowCmd()
 {
-    Console.WriteLine("# List cmd: cmd,login, signup, find_match, invite_match");
+    Console.WriteLine("# List cmd: cmd,login, signup, find_match, invite_match, move");
 }
 
 void Login()

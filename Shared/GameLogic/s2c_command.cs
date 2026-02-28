@@ -25,13 +25,23 @@ namespace Shared.Logic
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct s2c_match_start : IByteSerializable
     {
+        public int MatchId;
         public int Player_A_Id;
         public int Player_B_Id;
 
+        public s2c_match_start(int matchId, int playerAId, int playerBId)
+        {
+            MatchId = matchId;
+            Player_A_Id = playerAId;
+            Player_B_Id = playerBId;
+        }
+
         public s2c_match_start(byte[] bytes)
         {
-            Player_A_Id = BitConverter.ToInt32(bytes, 0);
-            Player_B_Id = BitConverter.ToInt32(bytes, 4);
+            int offset = 0; 
+            MatchId = BitConverter.ToInt32(bytes, offset); offset += 4; 
+            Player_A_Id = BitConverter.ToInt32(bytes, offset); offset += 4;
+            Player_B_Id = BitConverter.ToInt32(bytes, offset); offset += 4;
         }
 
         public byte[] ToBytes() => StructByteConverter.ToBytes(this);
@@ -88,11 +98,13 @@ namespace Shared.Logic
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct s2c_start_turn : IByteSerializable
     {
+        public int NextTurnPlayerId; // to check this turn is whom
         public uint CellArraySize;
         public Cell[] Cells;
 
-        public s2c_start_turn(Cell[] cells)
+        public s2c_start_turn(int nextTurnPlayerId, Cell[] cells)
         {
+            NextTurnPlayerId = nextTurnPlayerId;
             Cells = cells;
             CellArraySize = (uint)cells.Length;
         }
@@ -100,6 +112,7 @@ namespace Shared.Logic
         public s2c_start_turn(byte[] bytes)
         {
             int offset = 0;
+            NextTurnPlayerId = BitConverter.ToInt32(bytes, offset); offset += 4;     
             CellArraySize = BitConverter.ToUInt32(bytes, offset); offset += 4;
             Cells = new Cell[CellArraySize];
             for (int i = 0; i < CellArraySize; i++)
@@ -112,6 +125,7 @@ namespace Shared.Logic
         public byte[] ToBytes()
         {
             var list = new List<byte>();
+            list.AddRange(BitConverter.GetBytes(NextTurnPlayerId));
             list.AddRange(BitConverter.GetBytes(CellArraySize));
             if (Cells != null)
                 foreach (var c in Cells)

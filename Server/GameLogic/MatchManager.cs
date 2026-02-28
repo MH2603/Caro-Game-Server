@@ -8,7 +8,7 @@ namespace Server.GameLogic
 {
     public class MatchManager : IPacketHandler, IDisposable
     {
-        private ConcurrentDictionary<int, Match> _matchs = new ();
+        private ConcurrentDictionary<int, Match> _matchMap = new ();
         int _matchIndexCounter = 1;
 
         // other dependents
@@ -17,6 +17,7 @@ namespace Server.GameLogic
         public MatchManager(IPlayerService playerService)
         {
             PacketDispatcher.Instance.RegisterHandler(EPacketHeader.Find_Match, this);
+            PacketDispatcher.Instance.RegisterHandler(EPacketHeader.Execute_Turn, this);
 
             this.playerService = playerService;
         }
@@ -24,6 +25,7 @@ namespace Server.GameLogic
         void IDisposable.Dispose()
         {
             PacketDispatcher.Instance.UnregisterHandler(EPacketHeader.Find_Match);
+            PacketDispatcher.Instance.UnregisterHandler(EPacketHeader.Execute_Turn);
         }
 
         #region Event Callbacks
@@ -45,9 +47,13 @@ namespace Server.GameLogic
         {
             c2s_execute_turn cmd = new c2s_execute_turn(packet.Data);
 
-            for (int i = 0; i < _matchs.Count; i++)
+            if ( _matchMap.ContainsKey(cmd.MatchId))
             {
-                _matchs[i].HandlePlayerExecutedTurn(senderId, cmd);
+                _matchMap[cmd.MatchId].HandlePlayerExecutedTurn(senderId, cmd);
+            }
+            else
+            {
+                Logger.LogError($" Could find any match with id={cmd.MatchId}");
             }
         }
 
@@ -60,6 +66,7 @@ namespace Server.GameLogic
             if (foundCount > 0)
             {
                 CreateNewMatch(session.Player, player_B);
+                Logger.Log($" A match started between {session.Player.Data.Username} with {player_B.Data.Username}");
                 return;
             }
 
@@ -70,7 +77,7 @@ namespace Server.GameLogic
             if (match != null)
             {
                 match.OnMatchEnd -= HandleMatchEnd;
-                _matchs.TryRemove( match.Id, out match);
+                _matchMap.TryRemove( match.Id, out match);
             }
 
 
@@ -81,9 +88,9 @@ namespace Server.GameLogic
         void CreateNewMatch(Player playerA, Player playerB)
         {
             var match = new Match(playerA, playerB, _matchIndexCounter );
-            _matchs.TryAdd(match.Id, match);
+            _matchMap.TryAdd(match.Id, match);
 
-            CmdSender.SendMatchStartCmd(playerA.Data.Id, playerB.Data.Id);
+            CmdSender.SendMatchStartCmd(match.Id, playerA.Data.Id, playerB.Data.Id);
 
             match.OnMatchEnd += HandleMatchEnd;
 

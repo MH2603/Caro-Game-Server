@@ -25,9 +25,9 @@ namespace Client
             SendCmd(EPacketHeader.Find_Match, cmd);
         }
 
-        public void SendExecuteTurnCmd(int x, int y)
+        public void SendExecuteTurnCmd(int matchId, int x, int y)
         {
-            var cmd = new c2s_execute_turn(x, y);
+            var cmd = new c2s_execute_turn(matchId, x, y);
             SendCmd(EPacketHeader.Execute_Turn, cmd);
         }
        

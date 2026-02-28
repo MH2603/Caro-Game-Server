@@ -39,19 +39,25 @@ namespace Server.GameLogic
             _isTurnOfA = true;
             _cells = new List<Cell>();
 
-            CmdSender.SendTurnStartCmd( _isTurnOfA ? A.Id : B.Id, _cells.ToArray());
+            int nextTurnPlayerId = _isTurnOfA ? A.Id : B.Id;
+            CmdSender.SendTurnStartCmd( A.Id, nextTurnPlayerId, _cells.ToArray());
+            CmdSender.SendTurnStartCmd( B.Id, nextTurnPlayerId, _cells.ToArray());
 
-            _id = index * 100 * 100 + A.Id * 1000 + B.Id;
+            _id = index * 100 * 100 + A.Id * 100 + B.Id;
         }  
 
-        public void HandlePlayerExecutedTurn( int playerId ,c2s_execute_turn cmd)
+        public void HandlePlayerExecutedTurn( int senderId ,c2s_execute_turn cmd)
         {
+            Logger.Log($"Player {senderId} try to mark at {cmd.x} - {cmd.y}");
+
             // check legit of this execute
-            if(!CheckLegitOfExecuteTurnCmd(playerId, cmd)) return;
+            if(!CheckLegitOfExecuteTurnCmd(senderId, cmd)) return;
 
             MarkCell(cmd.x, cmd.y);
 
-            CmdSender.SendTurnStartCmd(_isTurnOfA ? A.Id : B.Id, _cells.ToArray());
+            int nextTurnPlayerId = _isTurnOfA ? B.Id : A.Id;
+            CmdSender.SendTurnStartCmd(A.Id, nextTurnPlayerId, _cells.ToArray());
+            CmdSender.SendTurnStartCmd(B.Id, nextTurnPlayerId, _cells.ToArray());
 
             CheckToEndMatch(cmd.x, cmd.y);
 
