@@ -40,7 +40,34 @@ namespace Client
                 case EPacketHeader.Start_Turn:
                     HandleStartTurn(packet);
                     break;
+                case EPacketHeader.Match_End:
+                    HandleMatchEnd(packet);
+                    break;
             }   
+        }
+
+        private void HandleMatchEnd(Packet packet)
+        {
+            s2c_match_end cmd = new s2c_match_end(packet.Data);
+
+            if ( cmd.WasDraw)
+            {
+                Logger.Log($" Match end with result DRAW ");
+            }
+            else if( cmd.WinnerId == _player.Id)
+            {
+                Logger.Log($"Match end, you win :> ");
+            }
+            else
+            {
+                Logger.Log($"Match end, you lose :< ");
+            }
+
+            _isPlayerTurn = false;
+            _opponentId = 0;
+            _matchId = 0;
+
+            _player.ChangeState(EPlayerState.Online);
         }
 
         private void HandleStartTurn(Packet packet)
@@ -50,7 +77,12 @@ namespace Client
             RenderBoard(cmd.Cells);
 
             // check player's turn flag 
-            _isPlayerTurn = cmd.NextTurnPlayerId == _player.Id ? true : false;  
+            _isPlayerTurn = cmd.NextTurnPlayerId == _player.Id ? true : false;
+
+            if ( _isPlayerTurn)
+            {
+                Logger.Log("CLIENT: The opponent moved, let do your turn !");
+            }
 
         }
 
@@ -101,20 +133,22 @@ namespace Client
                 return;
             }
 
-            int maxX = 0;
-            int maxY = 0;
+            int minX = int.MaxValue, maxX = int.MinValue;
+            int minY = int.MaxValue, maxY = int.MinValue;
 
             foreach (var cell in cells)
             {
                 int x = (int)cell.Pos.X;
                 int y = (int)cell.Pos.Y;
 
+                if (x < minX) minX = x;
                 if (x > maxX) maxX = x;
+                if (y < minY) minY = y;
                 if (y > maxY) maxY = y;
             }
 
-            int size_x = maxX + 1;
-            int size_y = maxY + 1;
+            int size_x = maxX - minX + 1;
+            int size_y = maxY - minY + 1;
 
             int[,] board = new int[size_x, size_y];
 
@@ -122,10 +156,12 @@ namespace Client
             {
                 int x = (int)cell.Pos.X;
                 int y = (int)cell.Pos.Y;
+                int ix = x - minX;
+                int iy = y - minY;
 
-                if (x >= 0 && x < size_x && y >= 0 && y < size_y)
+                if (ix >= 0 && ix < size_x && iy >= 0 && iy < size_y)
                 {
-                    board[x, y] = cell.Status;
+                    board[ix, iy] = cell.Status;
                 }
             }
 
@@ -174,8 +210,8 @@ namespace Client
 
             Logger.Log($"CLIENT: marked at {pos_x} {pos_y}");
 
-            _isPlayerTurn = false;
-            _session.SendExecuteTurnCmd(_matchId, pos_x, pos_x);
+            //_isPlayerTurn = false;
+            _session.SendExecuteTurnCmd(_matchId, pos_x, pos_y);
         }
     }
 }

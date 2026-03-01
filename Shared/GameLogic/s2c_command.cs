@@ -141,6 +141,12 @@ namespace Shared.Logic
         public Vector2 Pos;
         public int Status;  // 0: empty | 1: player 01 | 2: player 02
 
+        public Cell(int x, int y, int markValue)
+        {
+            Pos.X = x; Pos.Y = y;
+            Status = markValue;
+        }
+
         public Cell(ReadOnlySpan<byte> bytes)
         {
             Pos = new Vector2(
@@ -162,13 +168,14 @@ namespace Shared.Logic
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct s2c_match_end : IByteSerializable
     {
+        [MarshalAs( UnmanagedType.U1)]
         public bool WasDraw;
         public int WinnerId;
 
         public s2c_match_end(byte[] bytes)
         {
             WasDraw = BitConverter.ToBoolean(bytes, 0);
-            WinnerId = BitConverter.ToInt32(bytes, 4);
+            WinnerId = BitConverter.ToInt32(bytes, 1);
         }
 
         public byte[] ToBytes() => StructByteConverter.ToBytes(this);

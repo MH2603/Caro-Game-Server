@@ -11,7 +11,7 @@ Batteries.Init();
 var db = new SQLiteDbContext("mygame.db");
 var playerRepo = new SQLitePlayerRepository(db);
 await playerRepo.Init();
-//ServiceLocator.RegisterService<IPlayerRepository>(playerRepo);
+ServiceLocator.RegisterService<IPlayerRepository>(playerRepo);
 
 
 // init sessions

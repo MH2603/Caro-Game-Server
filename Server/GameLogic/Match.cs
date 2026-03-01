@@ -3,6 +3,7 @@ using Shared.GameLogic;
 using Shared.Logic;
 using Shared.Network;
 using System.Numerics;
+using System.Text.RegularExpressions;
 
 namespace Server.GameLogic
 {
@@ -20,7 +21,6 @@ namespace Server.GameLogic
         const int WinConditionCombo = 3;
         #endregion
 
-
         #region PROPERTIES
         public Action<Match> OnMatchEnd;
         public int Id => _id;
@@ -33,17 +33,25 @@ namespace Server.GameLogic
             A = playerA;
             B = playerB;
 
+            _id = index * 100 * 100 + A.Id * 100 + B.Id;
+            CmdSender.SendMatchStartCmd(Id, playerA.Data.Id, playerB.Data.Id);
+
             A.ChangeState(EPlayerState.InMatch);
             B.ChangeState(EPlayerState.InMatch);
 
-            _isTurnOfA = true;
+            // auto mark at (0,0) for player A
             _cells = new List<Cell>();
-
+            MarkCell(0, 0, 1);
+            _isTurnOfA = false;
+            
             int nextTurnPlayerId = _isTurnOfA ? A.Id : B.Id;
             CmdSender.SendTurnStartCmd( A.Id, nextTurnPlayerId, _cells.ToArray());
             CmdSender.SendTurnStartCmd( B.Id, nextTurnPlayerId, _cells.ToArray());
 
-            _id = index * 100 * 100 + A.Id * 100 + B.Id;
+            //test
+            //var winnerId = A.Id;
+            //CmdSender.SendMatchEnd(A.Id, false, winnerId);
+            //CmdSender.SendMatchEnd(B.Id, false, winnerId);
         }  
 
         public void HandlePlayerExecutedTurn( int senderId ,c2s_execute_turn cmd)
@@ -53,7 +61,7 @@ namespace Server.GameLogic
             // check legit of this execute
             if(!CheckLegitOfExecuteTurnCmd(senderId, cmd)) return;
 
-            MarkCell(cmd.x, cmd.y);
+            MarkCell(cmd.x, cmd.y, _isTurnOfA ? 1 : 2);
 
             int nextTurnPlayerId = _isTurnOfA ? B.Id : A.Id;
             CmdSender.SendTurnStartCmd(A.Id, nextTurnPlayerId, _cells.ToArray());
@@ -79,11 +87,27 @@ namespace Server.GameLogic
                 diagonal_down_combo >= WinConditionCombo)
             {
                 int winnerId = _isTurnOfA ? A.Id : B.Id;
-                CmdSender.SendMatchEnd(A.Id, false, winnerId);
-                CmdSender.SendMatchEnd(B.Id, false, winnerId);
+
+                if ( _isTurnOfA)
+                {
+                    A.Data.WinMatch++;
+                    B.Data.LostMatch++;
+                }
+                else
+                {
+                    A.Data.LostMatch++;
+                    B.Data.WinMatch++;
+                }
+
+                var repoService = ServiceLocator.GetService<IPlayerRepository>();
+                repoService.UpdateAsync(A.Data);
+                repoService.UpdateAsync(B.Data);
 
                 A.ChangeState(EPlayerState.Online);
                 B.ChangeState(EPlayerState.Online);
+
+                CmdSender.SendMatchEnd(A.Id, false, winnerId);
+                CmdSender.SendMatchEnd(B.Id, false, winnerId);
 
                 OnMatchEnd?.Invoke(this);
             }
@@ -100,7 +124,10 @@ namespace Server.GameLogic
                 pos_x += dir_x;
                 pos_y += dir_y;
 
-                if ( GetCell(pos_x, pos_y).Status == markValue)
+                var cellIndex = GetCellIndex(pos_x, pos_y);
+
+                if ( cellIndex >= 0 &&
+                    _cells[cellIndex].Status == markValue)
                 {
                     combo++;
                 }
@@ -121,29 +148,43 @@ namespace Server.GameLogic
                 return false;    
             }
 
-            var cell = GetCell(cmd.x, cmd.y);
-            if(cell.Status != 0 ) return false;
+            var index = GetCellIndex(cmd.x, cmd.y);
+            if( index >= 0 && _cells[index].Status != 0)
+            {
+                return false;
+            }
 
             return true;
         }
 
-        Cell GetCell( int x, int y)
+        int GetCellIndex( int x, int y)
         {
             for ( int i=0; i < _cells.Count; i++)
             {
                 if (_cells[i].Pos.X == x && _cells[i].Pos.Y == y)
                 {
-                    return _cells[i];   
+                    return i;
                 }
             }
 
-            return default;
+            return -1;
         }
 
-        void MarkCell(int x, int y)
+        void MarkCell(int x, int y, int markValue)
         {
-            Cell cell = GetCell(x, y);
-            cell.Status = _isTurnOfA ? 1 : 2;   
+            var index = GetCellIndex(x, y);
+            if (index < 0)
+            {
+                // create a new cell
+                var cell = new Cell(x, y, markValue);
+                _cells.Add(cell);
+            }
+            else
+            {
+                var tempCell = _cells[index];
+                tempCell.Status = markValue;
+                _cells[index] = tempCell;
+            }
         }
 
     }

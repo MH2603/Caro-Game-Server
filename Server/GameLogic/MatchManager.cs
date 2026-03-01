@@ -59,7 +59,14 @@ namespace Server.GameLogic
 
         private void HandleFindMatchRequire(Session session)
         {
+            if (session.Player.State != EPlayerState.Online)
+            {
+                Logger.Log($" CLIENT:  {session.Player.Data.Username} FIND_MATCH but state = {session.Player.State} ");
+                return;
+            }
+
             session.Player.ChangeState(EPlayerState.FindMatch);
+            Logger.Log($" Player {session.Player.Data.Username} is finding a match ... ");
 
             // case 1: find a other player
             var player_B = playerService.GetRandomPlayerByState(EPlayerState.FindMatch, out var foundCount, session.Player.Id);
@@ -87,11 +94,8 @@ namespace Server.GameLogic
 
         void CreateNewMatch(Player playerA, Player playerB)
         {
-            var match = new Match(playerA, playerB, _matchIndexCounter );
+            var match = new Match(playerA, playerB, _matchIndexCounter);
             _matchMap.TryAdd(match.Id, match);
-
-            CmdSender.SendMatchStartCmd(match.Id, playerA.Data.Id, playerB.Data.Id);
-
             match.OnMatchEnd += HandleMatchEnd;
 
             _matchIndexCounter++;
