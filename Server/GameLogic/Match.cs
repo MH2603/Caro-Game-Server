@@ -2,12 +2,10 @@ using Server.Network;
 using Shared.GameLogic;
 using Shared.Logic;
 using Shared.Network;
-using System.Numerics;
-using System.Text.RegularExpressions;
 
 namespace Server.GameLogic
 {
-    public class Match
+    public class Match : IDisposable
     {
         #region FIELDS
         int _id;
@@ -52,7 +50,15 @@ namespace Server.GameLogic
             //var winnerId = A.Id;
             //CmdSender.SendMatchEnd(A.Id, false, winnerId);
             //CmdSender.SendMatchEnd(B.Id, false, winnerId);
-        }  
+        }
+
+        public void Dispose()
+        {
+            A = null;
+            B = null;
+            _cells.Clear();
+            OnMatchEnd = null;
+        }
 
         public void HandlePlayerExecutedTurn( int senderId ,c2s_execute_turn cmd)
         {
@@ -86,32 +92,36 @@ namespace Server.GameLogic
                 diagonal_up_combo >= WinConditionCombo ||
                 diagonal_down_combo >= WinConditionCombo)
             {
-                int winnerId = _isTurnOfA ? A.Id : B.Id;
-
-                if ( _isTurnOfA)
-                {
-                    A.Data.WinMatch++;
-                    B.Data.LostMatch++;
-                }
-                else
-                {
-                    A.Data.LostMatch++;
-                    B.Data.WinMatch++;
-                }
-
-                var repoService = ServiceLocator.GetService<IPlayerRepository>();
-                repoService.UpdateAsync(A.Data);
-                repoService.UpdateAsync(B.Data);
-
-                A.ChangeState(EPlayerState.Online);
-                B.ChangeState(EPlayerState.Online);
-
-                CmdSender.SendMatchEnd(A.Id, false, winnerId);
-                CmdSender.SendMatchEnd(B.Id, false, winnerId);
-
-                OnMatchEnd?.Invoke(this);
+                EndMatch(_isTurnOfA ? A.Id : B.Id);
             }
                 
+        }
+
+        void EndMatch(int winnerId)
+        {
+
+            if (_isTurnOfA)
+            {
+                A.Data.WinMatch++;
+                B.Data.LostMatch++;
+            }
+            else
+            {
+                A.Data.LostMatch++;
+                B.Data.WinMatch++;
+            }
+
+            var repoService = ServiceLocator.GetService<IPlayerRepository>();
+            repoService.UpdateAsync(A.Data);
+            repoService.UpdateAsync(B.Data);
+
+            A.ChangeState(EPlayerState.Online);
+            B.ChangeState(EPlayerState.Online);
+
+            CmdSender.SendMatchEnd(A.Id, false, winnerId);
+            CmdSender.SendMatchEnd(B.Id, false, winnerId);
+
+            OnMatchEnd?.Invoke(this);
         }
 
         int CountCombo( int pos_x, int pos_y,int dir_x, int dir_y, int range, int markValue)
@@ -186,6 +196,21 @@ namespace Server.GameLogic
                 _cells[index] = tempCell;
             }
         }
+
+        public  void HandleSessionClosed(int disconnectedPlayerId)
+        {
+            if ( disconnectedPlayerId != A.Id &&
+                 disconnectedPlayerId != B.Id)
+            {
+                return;
+            }
+
+            bool wasPlayerADisconnected = disconnectedPlayerId == A.Id;
+            int winnerId = wasPlayerADisconnected ? B.Id : A.Id;
+
+            EndMatch(winnerId);
+        }
+
 
     }
 

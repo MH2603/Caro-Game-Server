@@ -15,13 +15,16 @@ namespace Shared.Network
 
         Find_Match = 100,
         Execute_Turn,
+        ClientPong,
 
         // s2c
         Login_Response = 200,
         SignUp_Response,
+        Logout_Response,
         Start_Turn,
-        Match_Start ,
-        Match_End ,
+        Match_Start,
+        Match_End,
+        ServerPing
     }
 
     [StructLayout( LayoutKind.Sequential, Pack =1)]

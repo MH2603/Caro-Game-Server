@@ -1,0 +1,51 @@
+---
+description: Guidelines for writing clear, easy-to-understand project documentation
+alwaysApply: true
+---
+
+# Documentation Writing Rule
+
+## 1. Clarity First
+- Use **simple, direct sentences**. Prefer short sentences over long, complex ones.
+- **Define domain terms** the first time you use them.
+- Avoid unnecessary abbreviations and jargon. If you must use them, explain once.
+
+## 2. Structure and Headings
+- Organize content with **clear headings and subheadings** that match the content.
+- For each document, start with:
+  - **Purpose**: what this document is for.
+  - **Audience**: who should read it.
+- Use **sections** for: overview, setup/usage, examples, troubleshooting, and references (as needed).
+
+## 3. Lists and Steps
+- Use **numbered lists** for step-by-step instructions.
+- Use **bulleted lists** for unordered information.
+- Each step should be **actionable** and testable (the reader can tell if they did it correctly).
+
+## 4. Examples Over Theory
+- Wherever possible, include **concrete examples** (code snippets, commands, sample inputs/outputs).
+- Place examples **directly near the concept** they explain.
+- Make sure examples are **copy-pastable and runnable** (no missing pieces).
+
+## 5. Language Style
+- Use **consistent terminology** throughout the project (e.g., always “match”, not sometimes “game” and sometimes “room”).
+- Prefer **active voice** (“The server sends a ping”) over passive voice (“A ping is sent by the server”).
+- Avoid ambiguity: prefer **one clear meaning** per sentence.
+
+## 6. Formatting and Readability
+- Use **monospace formatting** (`like this`) for code, commands, and identifiers.
+- Highlight **important warnings or constraints** with bold text and short callouts.
+- Keep paragraphs short (ideally **3–5 lines**).
+
+## 7. Versioning and Maintenance
+- Include a **last updated date** and, if relevant, **version numbers**.
+- When behavior changes, **update or clearly deprecate** old sections; do not leave conflicting information.
+- If something is uncertain or TODO, **mark it explicitly** with a short note.
+
+## 8. Audience Check
+- Before finishing, ask: “Can someone new to this project **follow this without asking questions**?”
+- If the answer is no, add:
+  - Missing background context
+  - A short glossary for key terms
+  - More step-by-step detail where people are likely to get stuck
+

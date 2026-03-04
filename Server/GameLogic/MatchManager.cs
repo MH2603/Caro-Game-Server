@@ -16,8 +16,11 @@ namespace Server.GameLogic
 
         public MatchManager(IPlayerService playerService)
         {
+            // hanler cmd from Clients
             PacketDispatcher.Instance.RegisterHandler(EPacketHeader.Find_Match, this);
             PacketDispatcher.Instance.RegisterHandler(EPacketHeader.Execute_Turn, this);
+
+            SessionManager.Instance.RegisterSessionClosedCallback(HandleSessionClosed);
 
             this.playerService = playerService;
         }
@@ -26,6 +29,8 @@ namespace Server.GameLogic
         {
             PacketDispatcher.Instance.UnregisterHandler(EPacketHeader.Find_Match);
             PacketDispatcher.Instance.UnregisterHandler(EPacketHeader.Execute_Turn);
+
+            SessionManager.Instance.UnregisterSessionClosedCallback(HandleSessionClosed);
         }
 
         #region Event Callbacks
@@ -81,13 +86,34 @@ namespace Server.GameLogic
 
         private void HandleMatchEnd(Match match)
         {
-            if (match != null)
+            if (match == null) return;
+
+            // 1. Sử dụng biến cục bộ riêng để hứng đối tượng lấy ra từ Map
+            if (_matchMap.TryRemove(match.Id, out var removedMatch))
             {
-                match.OnMatchEnd -= HandleMatchEnd;
-                _matchMap.TryRemove( match.Id, out match);
+                // 2. Chỉ Dispose nếu chúng ta thực sự là người lấy nó ra khỏi Map thành công
+                // Đảm bảo đối tượng lấy ra chính là đối tượng ta muốn (Optionally)
+                removedMatch.Dispose();
+            }
+            else
+            {
+                // 3. Log hoặc xử lý nếu Match này vốn dĩ đã bị xóa trước đó bởi luồng khác
+                // Logger.LogWarning($"Match {match.Id} already removed.");
+            }
+        }
+
+        private void HandleSessionClosed(Session session)
+        {
+            if(session.Player == null || session.Player.State != EPlayerState.InMatch)
+            {
+                return;
             }
 
-
+            var playerId = session.Player.Id;
+            foreach (var match in _matchMap.Values)
+            {
+                match.HandleSessionClosed(playerId);
+            }
         }
 
         #endregion
@@ -100,7 +126,5 @@ namespace Server.GameLogic
 
             _matchIndexCounter++;
         }
-
-        
     }
 }

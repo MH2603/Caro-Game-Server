@@ -19,7 +19,7 @@ namespace Server.Network
             s2c_login s2C_Login = new s2c_login
             {
                 Result = 1,
-                PlayerId = 1,   
+                PlayerId = 1,
             };
 
             Packet packet = new Packet
@@ -51,7 +51,7 @@ namespace Server.Network
         public static void SendMatchStartCmd(int matchId, int player_A_Id, int player_B_Id)
         {
             s2c_match_start cmd = new s2c_match_start(matchId, player_A_Id, player_B_Id);
-            
+
             Packet packet = new Packet
             {
                 Header = EPacketHeader.Match_Start,
@@ -79,7 +79,7 @@ namespace Server.Network
             session.SendPacket(packet);
         }
 
-        public static void SendTurnStartCmd(int receiverId , int nextTurnPlayerId, Cell[] cells)
+        public static void SendTurnStartCmd(int receiverId, int nextTurnPlayerId, Cell[] cells)
         {
             var cmd = new s2c_start_turn(nextTurnPlayerId, cells);
 
@@ -92,7 +92,7 @@ namespace Server.Network
             SessionManager.Instance.SendPacket(receiverId, packet);
         }
 
-        public static void SendMatchEnd( int receiverId, bool wasDraw, int winnerId)
+        public static void SendMatchEnd(int receiverId, bool wasDraw, int winnerId)
         {
             var cmd = new s2c_match_end
             {
@@ -103,5 +103,19 @@ namespace Server.Network
             SessionManager.Instance.SendCmd(receiverId, EPacketHeader.Match_End, cmd);
         }
 
+        public static void SendLogoutResponse(int playerId, bool success)
+        {
+            s2c_logout_re cmd = new s2c_logout_re
+            {
+                Result = success ? 0 : 1,
+            };
+            Packet packet = new Packet
+            {
+                Header = EPacketHeader.Logout_Response,
+                Data = cmd.ToBytes()
+            };
+            SessionManager.Instance.SendPacket(playerId, packet);
+
+        }
     }
 }

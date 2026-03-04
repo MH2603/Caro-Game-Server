@@ -9,7 +9,7 @@ namespace Shared.Network
         Connected, // after TCP  finish hand-shake 3 step
         Disconnected, 
         Authenticated, // after login
-        InGame
+        //InGame
     } 
 
 
@@ -81,13 +81,23 @@ namespace Shared.Network
             if (State == SessionState.Disconnected)
                 return;
 
+            OnClosed?.Invoke(this);
+
+            Logger.Log($" Session {SessionId} was closed ! ");
+
+            if (State == SessionState.Authenticated)
+            {
+                Logger.Log($" Session of {Player.Data.Username} was disconnected ");
+                Player = null;
+            }
+
             State = SessionState.Disconnected;
             _cts.Cancel();
 
             _stream?.Close();
             _tcpClient?.Close();
 
-            OnClosed?.Invoke(this);
+            
         }
 
         public void Dispose()

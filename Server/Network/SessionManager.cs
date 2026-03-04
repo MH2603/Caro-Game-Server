@@ -1,3 +1,4 @@
+using Server.Network;
 using Shared.Common;
 using Shared.Network;
 using System.Collections.Concurrent;
@@ -17,6 +18,9 @@ namespace Server
         private uint _sessionIndex = 0;
 
         private ConcurrentDictionary<int, Session> _runningSessionMap = new(); 
+        private Action<Session>? OnSessionClosed;
+
+        private PingTracker pingTraker;
 
         #endregion
 
@@ -28,10 +32,14 @@ namespace Server
             {
                 _sessionPool = new ObjectPool<Session>(_poolInitCount, CreateSession, HandleReleaseSession);
             }
+
+            pingTraker = new PingTracker();
+            pingTraker.Start();
         }
 
         public void StartSession(TcpClient tcpClient)
         {
+            // get session from pool
             var session = _sessionPool.Get();
             if (session == null)
             {
@@ -39,14 +47,17 @@ namespace Server
                 return;
             }
 
-
+            // start session
             session.Start((int)_sessionIndex, tcpClient);
             session.OnPacketReceived += HandleReceivedPacket;
             session.OnClosed += HandleSessionClosed;
-            
-            _runningSessionMap.TryAdd(session.SessionId, session);
 
+            // add to running session map
+            _runningSessionMap.TryAdd(session.SessionId, session);
             _sessionIndex++;
+
+            // register to ping tracker
+            pingTraker.RegisterSession(session);    
 
             Logger.Log($"New session {session.SessionId} was started");
         }
@@ -77,6 +88,16 @@ namespace Server
             SendPacket(playerId, packet);   
         }
 
+        public void RegisterSessionClosedCallback(Action<Session> callback)
+        {
+            OnSessionClosed += callback;    
+        }
+
+        public void UnregisterSessionClosedCallback(Action<Session> callback)
+        {
+            OnSessionClosed -= callback;
+        }
+
         #endregion
 
         #region CALL BACK
@@ -94,8 +115,9 @@ namespace Server
 
             _runningSessionMap.TryRemove(session.SessionId, out _);
 
-            if(session.State == SessionState.Authenticated)
-                Logger.Log($" {session.Player.Data.Username} disconnected ");
+            pingTraker.UnregisterSession(session);
+
+            OnSessionClosed?.Invoke(session);
         }
 
         private void HandleReceivedPacket(Session session, Packet packet)
@@ -109,7 +131,6 @@ namespace Server
         {
             return new Session();
         }
-
         
     }
 }

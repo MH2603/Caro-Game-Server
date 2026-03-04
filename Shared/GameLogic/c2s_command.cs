@@ -121,4 +121,26 @@ namespace Shared.Logic
 
         public byte[] ToBytes() => StructByteConverter.ToBytes(this);
     }
+
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    public struct c2s_pong : IByteSerializable
+    {
+        public long Timestamp;
+        public c2s_pong(long timestamp)
+        {
+            Timestamp = timestamp;
+        }
+        public c2s_pong(byte[] bytes) 
+        {
+            Timestamp = BitConverter.ToInt64(bytes, 0);
+        }
+        public byte[] ToBytes() => StructByteConverter.ToBytes(this);
+    }
+
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    public struct c2s_logout : IByteSerializable
+    {
+        public c2s_logout(byte[] bytes) { }
+        public byte[] ToBytes() => Array.Empty<byte>();
+    }
 }

@@ -1,8 +1,8 @@
 # ServerForUnity – Architecture Document
 
-**Project:** Caro Chess (Gomoku) game server  
-**Target:** .NET 8.0  
-**Purpose:** Simple multiplayer server for Unity clients with sign-in, matchmaking, and win/lose flow.
+**Purpose:** Explain the architecture of the Caro Chess (Gomoku) game server and test client.  
+**Audience:** Developers who maintain, debug, or extend the `ServerForUnity` solution.  
+**Tech Stack:** .NET 8.0, TCP sockets, SQLite.
 
 ---
 
@@ -12,8 +12,9 @@ ServerForUnity is a TCP-based game server that provides:
 
 - **Authentication** – Login and sign-up
 - **Matchmaking** – Find opponent and start match
-- **Game logic** – Turn-based board game (3-in-a-row / Caro 5-in-a-row)
-- **Session management** – Connection handling, packet routing
+- **Game logic** – Turn-based board game (currently 3-in-a-row, extensible to Caro 5-in-a-row)
+- **Session management** – Connection handling, packet routing, disconnect handling
+- **Connection health** – Periodic server ping and client pong to detect dead sessions
 
 The architecture follows a **handler/dispatcher** pattern: incoming packets are routed by header to registered handlers. Shared code (network, commands, game models) lives in the `Shared` project; server and client each reference it.
 
@@ -73,6 +74,7 @@ Server/
 ├── Network/
 │   ├── NetworkListener.cs     # TCP listener (port 2003)
 │   ├── SessionManager.cs      # Session pool, packet routing
+│   ├── PingTracker.cs         # Periodic ping/pong tracking and timeout
 │   └── s2c_CmdSender.cs       # Server→client packet builders
 ├── GameLogic/
 │   ├── PlayerManager.cs       # Login, SignUp, IPlayerService
@@ -221,6 +223,27 @@ Client (turn)                    Server
   │◄──────────────────────────────│
 ```
 
+### 5.5 Ping / Disconnect Flow
+
+```
+Client                          Server
+  │                               │
+  │  (idle)                       │
+  │                               │  PingTracker.TickLoop
+  │                               │  ├─ For each active Session
+  │                               │  │   ├─ If ElapsedSendPingTime > PingCooldown → Send ServerPing
+  │                               │  │   └─ If ElapsedReceivePongTime > PongDelayThreshold → Session.Close()
+  │                               │  └─ SessionManager.HandleSessionClosed
+  │                               │
+  │◄────────── s2c_ping ──────────│  Session.SendCmd(ServerPing, s2c_ping)
+  │                               │
+  │────────── c2s_pong ──────────►│  PacketDispatcher → PingTracker.HandlePacket
+  │                               │  Reset ElapsedReceivePongTime
+  │                               │
+  │           (no pong)           │
+  │           ────────────────x   │  Session.Close() → Match.HandleSessionClosed(winner by disconnect)
+```
+
 ---
 
 ## 6. Network Layer
@@ -242,15 +265,20 @@ Client (turn)                    Server
 
 | Header | Direction | Purpose |
 |--------|-----------|---------|
+| `Disconnect` | C2S | Client-initiated disconnect |
 | `Login` | C2S | Login request |
 | `SignUp` | C2S | Sign-up request |
+| `Logout` | C2S | Logout request |
 | `Find_Match` | C2S | Request matchmaking |
-| `Execute_Turn` | C2S | Place piece (x, y) |
-| `Login_Response` | S2C | Login result |
+| `Execute_Turn` | C2S | Place piece (x, y) in a match |
+| `ClientPong` | C2S | Pong response with timestamp |
+| `Login_Response` | S2C | Login result + player id |
 | `SignUp_Response` | S2C | Sign-up result |
-| `Match_Start` | S2C | Match started (player IDs) |
-| `Start_Turn` | S2C | Turn start + board state |
+| `Logout_Response` | S2C | Logout result |
+| `Match_Start` | S2C | Match started (match id + players) |
+| `Start_Turn` | S2C | Turn start + board state (cells) |
 | `Match_End` | S2C | Match over (winner/draw) |
+| `ServerPing` | S2C | Ping with timestamp |
 
 ### 6.3 Session Lifecycle
 

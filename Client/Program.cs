@@ -6,14 +6,7 @@ using System.Net.Sockets;
 
 Console.WriteLine("Hello, World!");
 
-TcpClient tcpClient = new TcpClient();
-IPAddress iPAddress = IPAddress.Loopback;
-tcpClient.Connect(iPAddress, 2003);
-
-var session = new ClientSession();
-session.Start(0, tcpClient);
-
-GameManager gameManager = new GameManager(session);
+GameManager gameManager = new GameManager();
 
 
 while (true)
@@ -60,7 +53,7 @@ void ExecuteTurn()
 
 void FindMatch()
 {
-    session.SendFindMatchCmd();
+    gameManager.FindMatch();
 }
 
 void SignUp()
@@ -68,7 +61,7 @@ void SignUp()
     var username = Prompt("Username: ");
     var pw = Prompt("Password: ");
 
-    session.SendSignUpCmd(username, pw);
+    gameManager.SignUp(username, pw);   
 }
 
 string Prompt(string message)
@@ -87,6 +80,6 @@ void Login()
     var username = Prompt("Username: ");
     var pw = Prompt("Password: ");
 
-    session.SendLoginCmd(username, pw); 
+    gameManager.Login(username, pw);
 }
 

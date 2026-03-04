@@ -38,8 +38,8 @@ namespace Shared.Logic
 
         public s2c_match_start(byte[] bytes)
         {
-            int offset = 0; 
-            MatchId = BitConverter.ToInt32(bytes, offset); offset += 4; 
+            int offset = 0;
+            MatchId = BitConverter.ToInt32(bytes, offset); offset += 4;
             Player_A_Id = BitConverter.ToInt32(bytes, offset); offset += 4;
             Player_B_Id = BitConverter.ToInt32(bytes, offset); offset += 4;
         }
@@ -112,7 +112,7 @@ namespace Shared.Logic
         public s2c_start_turn(byte[] bytes)
         {
             int offset = 0;
-            NextTurnPlayerId = BitConverter.ToInt32(bytes, offset); offset += 4;     
+            NextTurnPlayerId = BitConverter.ToInt32(bytes, offset); offset += 4;
             CellArraySize = BitConverter.ToUInt32(bytes, offset); offset += 4;
             Cells = new Cell[CellArraySize];
             for (int i = 0; i < CellArraySize; i++)
@@ -168,7 +168,7 @@ namespace Shared.Logic
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct s2c_match_end : IByteSerializable
     {
-        [MarshalAs( UnmanagedType.U1)]
+        [MarshalAs(UnmanagedType.U1)]
         public bool WasDraw;
         public int WinnerId;
 
@@ -179,5 +179,57 @@ namespace Shared.Logic
         }
 
         public byte[] ToBytes() => StructByteConverter.ToBytes(this);
+    }
+
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    public struct s2c_ping : IByteSerializable
+    {
+        public long Timestamp;
+        public s2c_ping(long timestamp)
+        {
+            Timestamp = timestamp;
+        }
+        public s2c_ping(byte[] bytes)
+        {
+            Timestamp = BitConverter.ToInt64(bytes, 0);
+        }
+        public byte[] ToBytes() => StructByteConverter.ToBytes(this);
+    }
+
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    public struct s2c_logout_re : IByteSerializable
+    {
+        public int Result;  // 0: success, 1: fault 
+
+        public s2c_logout_re(byte[] bytes)
+        {
+            Result = BitConverter.ToInt32(bytes, 0);
+        }
+
+        public s2c_logout_re(int result)
+        {
+            Result = result;
+        }
+
+        public byte[] ToBytes()
+        {
+            return Array.Empty<byte>();
+        }
+    }
+
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    public struct s2c_disconnection : IByteSerializable
+    {
+        public int PlayerId;
+        public s2c_disconnection(byte[] bytes)
+        {
+            PlayerId = BitConverter.ToInt32(bytes, 0);
+        }
+        public s2c_disconnection(int playerId)
+        {
+            PlayerId = playerId;
+        }
+        public byte[] ToBytes() => StructByteConverter.ToBytes(this);
+
     }
 }

@@ -178,6 +178,7 @@ namespace Server.GameLogic
                 {
                     session.BindPlayer(player);
                     player.ChangeState(EPlayerState.Online);
+                    session.OnClosed += HandleSessionClosed;    
 
                     // Send a command to player
                     CmdSender.SendLoginResponse(player.Id, success: true);
@@ -195,7 +196,16 @@ namespace Server.GameLogic
 
         }
 
-        
+        void HandleSessionClosed(Session session)
+        {
+            session.OnClosed -= HandleSessionClosed;
+
+            if (session.Player != null)
+            {
+                session.Player.ChangeState(EPlayerState.Offline);
+                Logger.Log($"Player {session.Player.Data.Username} was offline !");
+            }
+        }   
 
         #endregion
 

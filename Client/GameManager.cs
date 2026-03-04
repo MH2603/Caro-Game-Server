@@ -1,7 +1,10 @@
-using System;
 using Shared.GameLogic;
 using Shared.Logic;
 using Shared.Network;
+using System;
+using System.Net;
+using System.Net.Sockets;
+using System.Threading.Tasks;
 
 namespace Client
 {
@@ -16,15 +19,6 @@ namespace Client
         int _opponentId = 0;    
 
         public Player Player { get { return _player; } }
-
-
-        public GameManager(ClientSession gameSession) 
-        {
-            _session = gameSession;
-
-            _session.OnPacketReceived += HandlePacket;
-
-        }
 
         public void HandlePacket( Session session, Packet packet)
         {
@@ -43,7 +37,19 @@ namespace Client
                 case EPacketHeader.Match_End:
                     HandleMatchEnd(packet);
                     break;
+                case EPacketHeader.ServerPing:
+                    HandleServerPing(packet);
+                    break;
             }   
+        }
+
+        private void HandleServerPing(Packet packet)
+        {
+            s2c_ping cmd =  new s2c_ping(packet.Data);
+
+            c2s_pong pong_cmd = new c2s_pong(cmd.Timestamp);
+
+            _session.SendCmd(EPacketHeader.ClientPong, pong_cmd);
         }
 
         private void HandleMatchEnd(Packet packet)
@@ -113,6 +119,46 @@ namespace Client
             _matchId = cmd.MatchId;  
 
             Logger.Log( $" Started a match with player={ _opponentId} at match={_matchId}");
+        }
+
+
+        async Task TryInitClientSession()
+        {
+            if (_session != null) return;
+
+            TcpClient tcpClient = new TcpClient();
+            IPAddress iPAddress = IPAddress.Loopback;
+            await tcpClient.ConnectAsync(iPAddress, 2003);
+
+            var session = new ClientSession();
+            session.Start(0, tcpClient);
+
+            _session = session;
+            _session.OnPacketReceived += HandlePacket;
+            _session.OnClosed += HandleSessionClosed;
+
+            //await Task.Delay(1000); // wait a bit for session to be ready    
+        }
+
+        private void HandleSessionClosed(Session session)
+        {
+            _session.OnPacketReceived -= HandlePacket;
+
+            if (_session != null && 
+                session.State == SessionState.Authenticated)
+            {
+                Logger.Log("Session closed by server.");
+
+                _player = null;
+                _session = null;
+            }
+        }
+
+        public async Task Login( string username, string pw)
+        {
+            await TryInitClientSession();
+            
+            _session.SendLoginCmd(username, pw);
         }
 
         void InitPlayer(int playerId)
@@ -212,6 +258,17 @@ namespace Client
 
             //_isPlayerTurn = false;
             _session.SendExecuteTurnCmd(_matchId, pos_x, pos_y);
+        }
+
+        internal void FindMatch()
+        {
+            _session.SendFindMatchCmd();
+        }
+
+        internal async Task SignUp(string username, string pw)
+        {
+            await TryInitClientSession();
+            _session.SendSignUpCmd(username, pw);
         }
     }
 }
